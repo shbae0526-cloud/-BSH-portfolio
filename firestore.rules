@@ -52,7 +52,7 @@ service cloud.firestore {
 
     function isValidPortfolioItem(data) {
       let hasRequired = data.keys().hasAll(['id', 'title', 'category', 'description', 'createdAt']);
-      let hasMedia = (data.get('imageUrl', "") != "") || (data.get('videoUrl', "") != "");
+      let hasMedia = (data.get('imageUrl', "") != "") || (data.get('videoUrl', "") != "") || (data.get('images', []).size() > 0);
       
       return hasRequired && hasMedia &&
              data.id is string &&
@@ -61,6 +61,7 @@ service cloud.firestore {
              data.description is string && data.description.size() < 2000 &&
              (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.matches("^https?://.*"))) &&
              (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.matches("^https?://.*"))) &&
+             (!('images' in data) || (data.images is list && data.images.size() <= 10)) &&
              data.createdAt is number;
     }
 

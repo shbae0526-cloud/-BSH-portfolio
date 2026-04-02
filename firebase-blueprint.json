@@ -10,6 +10,7 @@
         "category": { "type": "string" },
         "description": { "type": "string" },
         "imageUrl": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
         "videoUrl": { "type": "string" },
         "createdAt": { "type": "number" }
       },

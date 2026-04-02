@@ -23,7 +23,7 @@ export const AdminDashboard = ({
   const [activeTab, setActiveTab] = React.useState<'items' | 'settings'>('items');
   const [isAdding, setIsAdding] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<PortfolioItem | null>(null);
-  const [newItem, setNewItem] = React.useState({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
+  const [newItem, setNewItem] = React.useState({ title: '', category: '', description: '', imageUrl: '', videoUrl: '', images: [] as string[] });
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
 
   const handleSaveSettings = () => {
@@ -150,6 +150,50 @@ export const AdminDashboard = ({
                     />
                     <p className="text-[10px] text-gray-600">YouTube(watch/embed/shorts), Vimeo, 또는 직접적인 영상 파일(.mp4 등) 링크를 지원합니다.</p>
                   </div>
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">추가 이미지 (여러 장 묶기)</label>
+                    <div className="grid grid-cols-1 gap-3">
+                      {(editingItem?.images || newItem.images).map((img, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={img}
+                            onChange={e => {
+                              const newImages = [...(editingItem ? (editingItem.images || []) : newItem.images)];
+                              newImages[idx] = e.target.value;
+                              editingItem 
+                                ? setEditingItem({...editingItem, images: newImages})
+                                : setNewItem({...newItem, images: newImages});
+                            }}
+                            className="flex-grow bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
+                            placeholder="https://..."
+                          />
+                          <button 
+                            onClick={() => {
+                              const newImages = (editingItem ? (editingItem.images || []) : newItem.images).filter((_, i) => i !== idx);
+                              editingItem 
+                                ? setEditingItem({...editingItem, images: newImages})
+                                : setNewItem({...newItem, images: newImages});
+                            }}
+                            className="p-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        onClick={() => {
+                          const newImages = [...(editingItem ? (editingItem.images || []) : newItem.images), ''];
+                          editingItem 
+                            ? setEditingItem({...editingItem, images: newImages})
+                            : setNewItem({...newItem, images: newImages});
+                        }}
+                        className="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-white/10 rounded-lg text-gray-500 hover:text-white hover:border-white/30 transition-all text-sm"
+                      >
+                        <Plus size={16} /> 이미지 추가
+                      </button>
+                    </div>
+                  </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">설명</label>
                     <textarea 
@@ -191,7 +235,7 @@ export const AdminDashboard = ({
                         } else {
                           await onAddItem(newItem);
                           setIsAdding(false);
-                          setNewItem({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
+                          setNewItem({ title: '', category: '', description: '', imageUrl: '', videoUrl: '', images: [] });
                         }
                       } catch (err: any) {
                         console.error('Save Error:', err);

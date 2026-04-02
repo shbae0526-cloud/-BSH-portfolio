@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Play, ChevronRight, X, Maximize2 } from 'lucide-react';
+import { ArrowRight, Play, ChevronRight, X, Maximize2, ChevronLeft } from 'lucide-react';
 import { PortfolioItem, SiteSettings } from '../types';
 
 const getVideoEmbedUrl = (url: string, isBackground = false) => {
@@ -56,12 +56,28 @@ const getThumbnailUrl = (item: PortfolioItem) => {
 export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const categories = ['ALL', ...Array.from(new Set(items.map(item => item.category.toUpperCase())))];
 
   const filteredItems = selectedCategory === 'ALL' 
     ? items 
     : items.filter(item => item.category.toUpperCase() === selectedCategory);
+
+  const allMedia = selectedItem ? [
+    ...(selectedItem.imageUrl ? [selectedItem.imageUrl] : []),
+    ...(selectedItem.images || [])
+  ] : [];
+
+  const handleNextMedia = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % allMedia.length);
+  };
+
+  const handlePrevMedia = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + allMedia.length) % allMedia.length);
+  };
 
   return (
     <section id="portfolio" className="py-32 px-6 bg-[#050505]">
@@ -113,7 +129,10 @@ export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                onClick={() => setSelectedItem(item)}
+                onClick={() => {
+                  setSelectedItem(item);
+                  setCurrentImageIndex(0);
+                }}
                 className="group cursor-pointer"
               >
               <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-white/5 mb-6">
@@ -177,7 +196,7 @@ export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl"
+              className="relative w-full max-w-6xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl group/modal"
             >
               {selectedItem.videoUrl ? (
                 isDirectVideo(selectedItem.videoUrl) ? (
@@ -197,12 +216,46 @@ export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
                   />
                 )
               ) : (
-                <img 
-                  src={selectedItem.imageUrl} 
-                  alt={selectedItem.title} 
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                />
+                <div className="relative w-full h-full">
+                  <AnimatePresence mode="wait">
+                    <motion.img 
+                      key={currentImageIndex}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      src={allMedia[currentImageIndex]} 
+                      alt={selectedItem.title} 
+                      className="w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
+                    />
+                  </AnimatePresence>
+
+                  {allMedia.length > 1 && (
+                    <>
+                      <button 
+                        onClick={handlePrevMedia}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover/modal:opacity-100 transition-all hover:bg-[#00D4FF] hover:text-black"
+                      >
+                        <ChevronLeft size={24} />
+                      </button>
+                      <button 
+                        onClick={handleNextMedia}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover/modal:opacity-100 transition-all hover:bg-[#00D4FF] hover:text-black"
+                      >
+                        <ChevronRight size={24} />
+                      </button>
+                      
+                      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2">
+                        {allMedia.map((_, idx) => (
+                          <div 
+                            key={idx}
+                            className={`w-2 h-2 rounded-full transition-all ${idx === currentImageIndex ? 'bg-[#00D4FF] w-6' : 'bg-white/30'}`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
               
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black to-transparent">

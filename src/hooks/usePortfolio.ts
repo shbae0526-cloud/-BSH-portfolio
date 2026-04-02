@@ -153,6 +153,10 @@ export function usePortfolio() {
     if (!cleanItem.imageUrl || cleanItem.imageUrl.trim() === '') {
       delete cleanItem.imageUrl;
     }
+    if (cleanItem.images) {
+      cleanItem.images = cleanItem.images.filter((img: string) => img && img.trim() !== '');
+      if (cleanItem.images.length === 0) delete cleanItem.images;
+    }
 
     const newItem: PortfolioItem = {
       ...cleanItem,
@@ -177,6 +181,10 @@ export function usePortfolio() {
     }
     if (cleanItem.imageUrl === '' || cleanItem.imageUrl === null) {
       cleanItem.imageUrl = deleteField();
+    }
+    if (cleanItem.images) {
+      cleanItem.images = cleanItem.images.filter((img: string) => img && img.trim() !== '');
+      if (cleanItem.images.length === 0) cleanItem.images = deleteField();
     }
 
     try {

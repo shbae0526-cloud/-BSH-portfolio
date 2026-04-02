@@ -4,6 +4,7 @@ export interface PortfolioItem {
   category: string;
   description: string;
   imageUrl?: string;
+  images?: string[];
   videoUrl?: string;
   createdAt: number;
 }
