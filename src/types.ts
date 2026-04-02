@@ -3,7 +3,7 @@ export interface PortfolioItem {
   title: string;
   category: string;
   description: string;
-  imageUrl: string;
+  imageUrl?: string;
   videoUrl?: string;
   createdAt: number;
 }

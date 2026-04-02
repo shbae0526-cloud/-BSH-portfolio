@@ -7,19 +7,24 @@ const getVideoEmbedUrl = (url: string, isBackground = false) => {
   if (!url) return '';
   
   // YouTube
-  const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+  const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   if (ytMatch) {
-    let embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}`;
+    const videoId = ytMatch[1];
+    let embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
     if (isBackground) {
-      embedUrl += '&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3';
+      embedUrl += '&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1';
     }
     return embedUrl;
   }
   
   // Vimeo
-  const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
+  const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:\w+\/)?|album\/(?:\d+\/)?video\/|video\/|)|player\.vimeo\.com\/video\/)([0-9]+)/);
   if (vimeoMatch) {
-    let embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&muted=1&loop=1&background=1`;
+    const videoId = vimeoMatch[1];
+    let embedUrl = `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1&background=${isBackground ? 1 : 0}`;
+    if (!isBackground) {
+      embedUrl += '&badge=0&autopause=0&player_id=0&app_id=58479';
+    }
     return embedUrl;
   }
   
@@ -28,6 +33,24 @@ const getVideoEmbedUrl = (url: string, isBackground = false) => {
 
 const isDirectVideo = (url: string) => {
   return url.match(/\.(mp4|webm|ogg)(\?.*)?$/i);
+};
+
+const getThumbnailUrl = (item: PortfolioItem) => {
+  if (item.imageUrl) return item.imageUrl;
+  if (!item.videoUrl) return 'https://picsum.photos/seed/vfx-placeholder/1200/800';
+
+  // YouTube Thumbnail
+  const ytMatch = item.videoUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
+  }
+
+  // Vimeo Thumbnail (Requires API for real one, but we can use a placeholder or generic)
+  if (item.videoUrl.includes('vimeo.com')) {
+    return 'https://picsum.photos/seed/vimeo-placeholder/1200/800';
+  }
+
+  return 'https://picsum.photos/seed/video-placeholder/1200/800';
 };
 
 export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
@@ -95,10 +118,19 @@ export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
               >
               <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-white/5 mb-6">
                 <img 
-                  src={item.imageUrl} 
+                  src={getThumbnailUrl(item)} 
                   alt={item.title} 
                   className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    // Fallback for YouTube maxresdefault if it doesn't exist
+                    if (item.videoUrl?.includes('youtube.com') || item.videoUrl?.includes('youtu.be')) {
+                      const ytMatch = item.videoUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                      if (ytMatch && (e.target as HTMLImageElement).src.includes('maxresdefault')) {
+                        (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+                      }
+                    }
+                  }}
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
                 

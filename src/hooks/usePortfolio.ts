@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, deleteField } from 'firebase/firestore';
 import { onAuthStateChanged, User, signInWithGoogle, logout } from '../firebase';
 import { db, auth } from '../firebase';
 import { PortfolioItem, SiteSettings } from '../types';
@@ -143,19 +143,48 @@ export function usePortfolio() {
   }, [isLoaded, isAdmin]);
 
   const addItem = async (item: Omit<PortfolioItem, 'id' | 'createdAt'>) => {
-    if (!isAdmin) return;
+    if (!isAdmin) throw new Error('관리자 권한이 없습니다.');
+    
     const id = Math.random().toString(36).substr(2, 9);
+    const cleanItem: any = { ...item };
+    if (!cleanItem.videoUrl || cleanItem.videoUrl.trim() === '') {
+      delete cleanItem.videoUrl;
+    }
+    if (!cleanItem.imageUrl || cleanItem.imageUrl.trim() === '') {
+      delete cleanItem.imageUrl;
+    }
+
     const newItem: PortfolioItem = {
-      ...item,
+      ...cleanItem,
       id,
       createdAt: Date.now(),
-    };
-    await setDoc(doc(db, COLLECTION_ITEMS, id), newItem);
+    } as PortfolioItem;
+
+    try {
+      await setDoc(doc(db, COLLECTION_ITEMS, id), newItem);
+    } catch (error) {
+      console.error('Add Item Error:', error);
+      throw error;
+    }
   };
 
   const updateItem = async (id: string, updatedItem: Partial<PortfolioItem>) => {
-    if (!isAdmin) return;
-    await updateDoc(doc(db, COLLECTION_ITEMS, id), updatedItem);
+    if (!isAdmin) throw new Error('관리자 권한이 없습니다.');
+    
+    const cleanItem: any = { ...updatedItem };
+    if (cleanItem.videoUrl === '' || cleanItem.videoUrl === null) {
+      cleanItem.videoUrl = deleteField();
+    }
+    if (cleanItem.imageUrl === '' || cleanItem.imageUrl === null) {
+      cleanItem.imageUrl = deleteField();
+    }
+
+    try {
+      await updateDoc(doc(db, COLLECTION_ITEMS, id), cleanItem);
+    } catch (error) {
+      console.error('Update Item Error:', error);
+      throw error;
+    }
   };
 
   const deleteItem = async (id: string) => {
@@ -164,17 +193,8 @@ export function usePortfolio() {
   };
 
   const saveSettings = async (newSettings: SiteSettings) => {
-    if (!isAdmin) {
-      console.error('Save Settings Error: User is not an admin or email not verified.');
-      throw new Error('권한이 없습니다. 관리자 계정으로 로그인하고 이메일 인증을 확인하세요.');
-    }
-    try {
-      await setDoc(doc(db, DOC_SETTINGS), newSettings);
-      console.log('Settings saved successfully to Firestore.');
-    } catch (error) {
-      console.error('Firestore Save Settings Error:', error);
-      throw error;
-    }
+    if (!isAdmin) return;
+    await setDoc(doc(db, DOC_SETTINGS), newSettings);
   };
 
   return { 

@@ -25,26 +25,11 @@ export const AdminDashboard = ({
   const [editingItem, setEditingItem] = React.useState<PortfolioItem | null>(null);
   const [newItem, setNewItem] = React.useState({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
-  
-  // Local state for settings to avoid excessive Firestore writes on every keystroke
-  const [localSettings, setLocalSettings] = React.useState<SiteSettings>(settings);
 
-  // Update local settings if the remote settings change (e.g. initial load)
-  React.useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings]);
-
-  const handleSaveSettings = async () => {
-    try {
-      setSaveStatus('저장 중...');
-      await onUpdateSettings(localSettings);
-      setSaveStatus('설정이 저장되었습니다.');
-      setTimeout(() => setSaveStatus(null), 3000);
-    } catch (error) {
-      console.error('Save Settings Error:', error);
-      setSaveStatus('저장 중 오류가 발생했습니다.');
-      setTimeout(() => setSaveStatus(null), 5000);
-    }
+  const handleSaveSettings = () => {
+    onUpdateSettings(settings);
+    setSaveStatus('설정이 저장되었습니다.');
+    setTimeout(() => setSaveStatus(null), 3000);
   };
 
   return (
@@ -147,7 +132,12 @@ export const AdminDashboard = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">영상 URL (선택사항)</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">영상 URL (선택사항)</label>
+                      {(editingItem?.videoUrl || newItem.videoUrl) && (
+                        <span className="text-[10px] text-[#00D4FF] font-bold">URL 감지됨</span>
+                      )}
+                    </div>
                     <input 
                       type="text" 
                       value={editingItem ? (editingItem.videoUrl || '') : newItem.videoUrl}
@@ -158,7 +148,7 @@ export const AdminDashboard = ({
                       className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                       placeholder="YouTube, Vimeo 또는 .mp4 파일 링크"
                     />
-                    <p className="text-[10px] text-gray-600">YouTube(watch/embed/youtu.be), Vimeo, 또는 직접적인 영상 파일(.mp4 등) 링크를 지원합니다.</p>
+                    <p className="text-[10px] text-gray-600">YouTube(watch/embed/shorts), Vimeo, 또는 직접적인 영상 파일(.mp4 등) 링크를 지원합니다.</p>
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">설명</label>
@@ -184,14 +174,28 @@ export const AdminDashboard = ({
                     취소
                   </button>
                   <button 
-                    onClick={() => {
-                      if (editingItem) {
-                        onUpdateItem(editingItem.id, editingItem);
-                        setEditingItem(null);
-                      } else {
-                        onAddItem(newItem);
-                        setIsAdding(false);
-                        setNewItem({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
+                    onClick={async () => {
+                      try {
+                        if (!newItem.title || !newItem.category) {
+                          alert('제목과 카테고리는 필수입니다.');
+                          return;
+                        }
+                        if (!newItem.imageUrl && !newItem.videoUrl && !editingItem) {
+                          alert('이미지 URL 또는 영상 URL 중 하나는 반드시 입력해야 합니다.');
+                          return;
+                        }
+
+                        if (editingItem) {
+                          await onUpdateItem(editingItem.id, editingItem);
+                          setEditingItem(null);
+                        } else {
+                          await onAddItem(newItem);
+                          setIsAdding(false);
+                          setNewItem({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
+                        }
+                      } catch (err: any) {
+                        console.error('Save Error:', err);
+                        alert('저장에 실패했습니다. ' + (err.message || ''));
                       }
                     }}
                     className="bg-[#00D4FF] text-black px-8 py-2.5 rounded-full text-sm font-bold shadow-[0_0_20px_rgba(0,212,255,0.3)]"
@@ -206,7 +210,14 @@ export const AdminDashboard = ({
               {items.map(item => (
                 <div key={item.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex items-center gap-6 group hover:border-white/20 transition-all">
                   <div className="w-24 h-16 rounded-lg overflow-hidden bg-black flex-shrink-0">
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" referrerPolicy="no-referrer" />
+                    <img 
+                      src={item.imageUrl || (item.videoUrl?.includes('youtube.com') || item.videoUrl?.includes('youtu.be') 
+                        ? `https://img.youtube.com/vi/${item.videoUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]}/hqdefault.jpg` 
+                        : 'https://picsum.photos/seed/vfx-placeholder/200/150')} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" 
+                      referrerPolicy="no-referrer" 
+                    />
                   </div>
                   <div className="flex-grow">
                     <div className="flex items-center gap-2">
@@ -239,8 +250,8 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">사이트 이름</label>
                 <input 
                   type="text" 
-                  value={localSettings.siteName}
-                  onChange={e => setLocalSettings({...localSettings, siteName: e.target.value})}
+                  value={settings.siteName}
+                  onChange={e => onUpdateSettings({...settings, siteName: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                 />
               </div>
@@ -249,14 +260,14 @@ export const AdminDashboard = ({
                 <div className="flex gap-3">
                   <input 
                     type="color" 
-                    value={localSettings.accentColor}
-                    onChange={e => setLocalSettings({...localSettings, accentColor: e.target.value})}
+                    value={settings.accentColor}
+                    onChange={e => onUpdateSettings({...settings, accentColor: e.target.value})}
                     className="w-12 h-12 bg-black border border-white/10 rounded-lg cursor-pointer"
                   />
                   <input 
                     type="text" 
-                    value={localSettings.accentColor}
-                    onChange={e => setLocalSettings({...localSettings, accentColor: e.target.value})}
+                    value={settings.accentColor}
+                    onChange={e => onUpdateSettings({...settings, accentColor: e.target.value})}
                     className="flex-grow bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
@@ -265,8 +276,8 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 이미지 URL</label>
                 <input 
                   type="text" 
-                  value={localSettings.aboutImageUrl}
-                  onChange={e => setLocalSettings({...localSettings, aboutImageUrl: e.target.value})}
+                  value={settings.aboutImageUrl}
+                  onChange={e => onUpdateSettings({...settings, aboutImageUrl: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                 />
               </div>
@@ -274,8 +285,8 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 배경 URL (이미지 또는 영상)</label>
                 <input 
                   type="text" 
-                  value={localSettings.heroBackgroundUrl || ''}
-                  onChange={e => setLocalSettings({...localSettings, heroBackgroundUrl: e.target.value})}
+                  value={settings.heroBackgroundUrl || ''}
+                  onChange={e => onUpdateSettings({...settings, heroBackgroundUrl: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   placeholder="YouTube, Vimeo 또는 .mp4 파일 링크"
                 />
@@ -285,16 +296,16 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 섹션 제목</label>
                 <input 
                   type="text" 
-                  value={localSettings.heroTitle}
-                  onChange={e => setLocalSettings({...localSettings, heroTitle: e.target.value})}
+                  value={settings.heroTitle}
+                  onChange={e => onUpdateSettings({...settings, heroTitle: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 섹션 부제목</label>
                 <textarea 
-                  value={localSettings.heroSubtitle}
-                  onChange={e => setLocalSettings({...localSettings, heroSubtitle: e.target.value})}
+                  value={settings.heroSubtitle}
+                  onChange={e => onUpdateSettings({...settings, heroSubtitle: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-24 resize-none"
                 />
               </div>
@@ -307,8 +318,8 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 소제목</label>
                   <input 
                     type="text" 
-                    value={localSettings.aboutSubtitle}
-                    onChange={e => setLocalSettings({...localSettings, aboutSubtitle: e.target.value})}
+                    value={settings.aboutSubtitle}
+                    onChange={e => onUpdateSettings({...settings, aboutSubtitle: e.target.value})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
@@ -316,24 +327,24 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 메인 제목</label>
                   <input 
                     type="text" 
-                    value={localSettings.aboutTitle}
-                    onChange={e => setLocalSettings({...localSettings, aboutTitle: e.target.value})}
+                    value={settings.aboutTitle}
+                    onChange={e => onUpdateSettings({...settings, aboutTitle: e.target.value})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">자기 소개 설명</label>
                   <textarea 
-                    value={localSettings.aboutDescription}
-                    onChange={e => setLocalSettings({...localSettings, aboutDescription: e.target.value})}
+                    value={settings.aboutDescription}
+                    onChange={e => onUpdateSettings({...settings, aboutDescription: e.target.value})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">EXPERTISE (한 줄에 하나씩)</label>
                   <textarea 
-                    value={localSettings.aboutExpertise.join('\n')}
-                    onChange={e => setLocalSettings({...localSettings, aboutExpertise: e.target.value.split('\n').filter(line => line.trim() !== '')})}
+                    value={settings.aboutExpertise.join('\n')}
+                    onChange={e => onUpdateSettings({...settings, aboutExpertise: e.target.value.split('\n').filter(line => line.trim() !== '')})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                     placeholder="3D Environment Design&#10;Fluid & Particle Simulation"
                   />
@@ -341,8 +352,8 @@ export const AdminDashboard = ({
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">TOOLS (한 줄에 하나씩)</label>
                   <textarea 
-                    value={localSettings.aboutTools.join('\n')}
-                    onChange={e => setLocalSettings({...localSettings, aboutTools: e.target.value.split('\n').filter(line => line.trim() !== '')})}
+                    value={settings.aboutTools.join('\n')}
+                    onChange={e => onUpdateSettings({...settings, aboutTools: e.target.value.split('\n').filter(line => line.trim() !== '')})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                     placeholder="Houdini, Maya, Blender&#10;Nuke, After Effects"
                   />
@@ -357,8 +368,8 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Instagram</label>
                   <input 
                     type="text" 
-                    value={localSettings.socialLinks.instagram}
-                    onChange={e => setLocalSettings({...localSettings, socialLinks: {...localSettings.socialLinks, instagram: e.target.value}})}
+                    value={settings.socialLinks.instagram}
+                    onChange={e => onUpdateSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
@@ -366,8 +377,8 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">YouTube</label>
                   <input 
                     type="text" 
-                    value={localSettings.socialLinks.youtube}
-                    onChange={e => setLocalSettings({...localSettings, socialLinks: {...localSettings.socialLinks, youtube: e.target.value}})}
+                    value={settings.socialLinks.youtube}
+                    onChange={e => onUpdateSettings({...settings, socialLinks: {...settings.socialLinks, youtube: e.target.value}})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>

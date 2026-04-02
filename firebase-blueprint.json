@@ -13,7 +13,7 @@
         "videoUrl": { "type": "string" },
         "createdAt": { "type": "number" }
       },
-      "required": ["id", "title", "category", "description", "imageUrl", "createdAt"]
+      "required": ["id", "title", "category", "description", "createdAt"]
     },
     "SiteSettings": {
       "title": "Site Settings",
