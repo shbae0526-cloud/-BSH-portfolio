@@ -2,7 +2,13 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Instagram, Youtube, Video, Palette, Mail, ExternalLink } from 'lucide-react';
 
-export const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, isAdmin: boolean }) => (
+export const Navbar = ({ onAdminClick, isAdmin, user, onLogin, onLogout }: { 
+  onAdminClick: () => void, 
+  isAdmin: boolean,
+  user: any,
+  onLogin: () => void,
+  onLogout: () => void
+}) => (
   <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
     <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
       <motion.div 
@@ -15,12 +21,35 @@ export const Navbar = ({ onAdminClick, isAdmin }: { onAdminClick: () => void, is
       <div className="flex items-center gap-8">
         <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm font-medium text-gray-400 hover:text-[#00D4FF] transition-colors">HOME</button>
         <button onClick={() => document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-medium text-gray-400 hover:text-[#00D4FF] transition-colors">PORTFOLIO</button>
-        <button 
-          onClick={onAdminClick}
-          className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isAdmin ? 'bg-[#00D4FF] text-black' : 'border border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF] hover:text-black'}`}
-        >
-          {isAdmin ? 'EXIT ADMIN' : 'ADMIN CMS'}
-        </button>
+        
+        {user ? (
+          <div className="flex items-center gap-4">
+            {isAdmin && (
+              <button 
+                onClick={onAdminClick}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isAdmin && window.location.hash === '#admin' ? 'bg-[#00D4FF] text-black' : 'border border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF] hover:text-black'}`}
+              >
+                {isAdmin && window.location.hash === '#admin' ? 'EXIT ADMIN' : 'ADMIN CMS'}
+              </button>
+            )}
+            <button 
+              onClick={onLogout}
+              className="text-xs font-bold text-gray-500 hover:text-white transition-colors"
+            >
+              LOGOUT
+            </button>
+            {user.photoURL && (
+              <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-white/10" referrerPolicy="no-referrer" />
+            )}
+          </div>
+        ) : (
+          <button 
+            onClick={onLogin}
+            className="px-4 py-2 rounded-full text-xs font-bold border border-white/20 text-white hover:bg-white/10 transition-all"
+          >
+            ADMIN LOGIN
+          </button>
+        )}
       </div>
     </div>
   </nav>

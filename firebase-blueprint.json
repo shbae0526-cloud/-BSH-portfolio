@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "A single portfolio project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "category", "description", "imageUrl", "createdAt"]
+    },
+    "SiteSettings": {
+      "title": "Site Settings",
+      "description": "Global settings for the portfolio site",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "aboutImageUrl": { "type": "string" },
+        "aboutTitle": { "type": "string" },
+        "aboutSubtitle": { "type": "string" },
+        "aboutDescription": { "type": "string" },
+        "aboutExpertise": { "type": "array", "items": { "type": "string" } },
+        "aboutTools": { "type": "array", "items": { "type": "string" } },
+        "heroBackgroundUrl": { "type": "string" },
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "instagram": { "type": "string" },
+            "youtube": { "type": "string" },
+            "vimeo": { "type": "string" },
+            "artstation": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "portfolio_items": {
+      "schema": "PortfolioItem",
+      "description": "List of portfolio projects"
+    },
+    "settings/global": {
+      "schema": "SiteSettings",
+      "description": "Global site configuration"
+    }
+  }
+}

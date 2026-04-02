@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: portfolio_items
+    // Document ID: auto-generated
+    // Fields:
+    //   - id: string (required)
+    //   - title: string (required)
+    //   - category: string (required)
+    //   - description: string (required)
+    //   - imageUrl: string (required)
+    //   - videoUrl: string (optional)
+    //   - createdAt: number (required)
+    //
+    // Collection: settings
+    // Document ID: global
+    // Fields:
+    //   - siteName: string
+    //   - heroTitle: string
+    //   - heroSubtitle: string
+    //   - accentColor: string
+    //   - contactEmail: string
+    //   - aboutImageUrl: string
+    //   - aboutTitle: string
+    //   - aboutSubtitle: string
+    //   - aboutDescription: string
+    //   - aboutExpertise: list<string>
+    //   - aboutTools: list<string>
+    //   - heroBackgroundUrl: string
+    //   - socialLinks: map
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email == "shbae0526@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isValidPortfolioItem(data) {
+      return data.keys().hasAll(['id', 'title', 'category', 'description', 'imageUrl', 'createdAt']) &&
+             data.id is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.category is string && data.category.size() > 0 && data.category.size() < 100 &&
+             data.description is string && data.description.size() < 2000 &&
+             data.imageUrl is string && data.imageUrl.matches("^https?://.*") &&
+             (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.matches("^https?://.*"))) &&
+             data.createdAt is number;
+    }
+
+    function isValidSettings(data) {
+      return data.siteName is string &&
+             data.heroTitle is string &&
+             data.heroSubtitle is string &&
+             data.accentColor is string &&
+             data.contactEmail is string &&
+             data.aboutImageUrl is string &&
+             data.aboutTitle is string &&
+             data.aboutSubtitle is string &&
+             data.aboutDescription is string &&
+             data.aboutExpertise is list &&
+             data.aboutTools is list &&
+             (!('heroBackgroundUrl' in data) || data.heroBackgroundUrl is string) &&
+             data.socialLinks is map;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /portfolio_items/{itemId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidPortfolioItem(request.resource.data);
+      allow update: if isAdmin() && isValidPortfolioItem(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+  }
+}

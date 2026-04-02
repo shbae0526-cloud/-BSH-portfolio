@@ -15,6 +15,11 @@ export interface SiteSettings {
   accentColor: string;
   contactEmail: string;
   aboutImageUrl: string;
+  aboutTitle: string;
+  aboutSubtitle: string;
+  aboutDescription: string;
+  aboutExpertise: string[];
+  aboutTools: string[];
   heroBackgroundUrl?: string;
   socialLinks: {
     instagram?: string;

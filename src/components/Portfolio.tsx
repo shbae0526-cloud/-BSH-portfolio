@@ -32,6 +32,13 @@ const isDirectVideo = (url: string) => {
 
 export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+
+  const categories = ['ALL', ...Array.from(new Set(items.map(item => item.category.toUpperCase())))];
+
+  const filteredItems = selectedCategory === 'ALL' 
+    ? items 
+    : items.filter(item => item.category.toUpperCase() === selectedCategory);
 
   return (
     <section id="portfolio" className="py-32 px-6 bg-[#050505]">
@@ -53,23 +60,39 @@ export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
               PORTFOLIO
             </motion.h2>
           </div>
-          <div className="flex gap-4">
-            {['ALL', 'ENVIRONMENTS', 'CHARACTERS', 'SIMULATION'].map((cat) => (
-              <button key={cat} className="text-xs font-bold text-gray-500 hover:text-white transition-colors tracking-widest">{cat}</button>
+          <div className="flex flex-wrap gap-4">
+            {categories.map((cat) => (
+              <button 
+                key={cat} 
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-[10px] font-bold tracking-[0.2em] transition-all px-4 py-2 rounded-full border ${
+                  selectedCategory === cat 
+                    ? 'bg-[#00D4FF] text-black border-[#00D4FF] shadow-[0_0_20px_rgba(0,212,255,0.3)]' 
+                    : 'text-gray-500 border-white/10 hover:text-white hover:border-white/30'
+                }`}
+              >
+                {cat}
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {items.map((item, index) => (
-            <motion.div 
-              key={item.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => setSelectedItem(item)}
-              className="group cursor-pointer"
-            >
+        <motion.div 
+          layout
+          className="grid grid-cols-1 md:grid-cols-2 gap-8"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredItems.map((item, index) => (
+              <motion.div 
+                key={item.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                onClick={() => setSelectedItem(item)}
+                className="group cursor-pointer"
+              >
               <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-white/5 mb-6">
                 <img 
                   src={item.imageUrl} 
@@ -97,8 +120,9 @@ export const PortfolioGrid = ({ items }: { items: PortfolioItem[] }) => {
                 </p>
               </div>
             </motion.div>
-          ))}
-        </div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       {/* Lightbox Modal */}

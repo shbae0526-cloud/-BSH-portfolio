@@ -286,6 +286,56 @@ export const AdminDashboard = ({
             </div>
 
             <div className="pt-8 border-t border-white/10">
+              <h3 className="text-lg font-bold text-white mb-6">About Me 섹션 설정</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 소제목</label>
+                  <input 
+                    type="text" 
+                    value={settings.aboutSubtitle}
+                    onChange={e => onUpdateSettings({...settings, aboutSubtitle: e.target.value})}
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 메인 제목</label>
+                  <input 
+                    type="text" 
+                    value={settings.aboutTitle}
+                    onChange={e => onUpdateSettings({...settings, aboutTitle: e.target.value})}
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">자기 소개 설명</label>
+                  <textarea 
+                    value={settings.aboutDescription}
+                    onChange={e => onUpdateSettings({...settings, aboutDescription: e.target.value})}
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">EXPERTISE (한 줄에 하나씩)</label>
+                  <textarea 
+                    value={settings.aboutExpertise.join('\n')}
+                    onChange={e => onUpdateSettings({...settings, aboutExpertise: e.target.value.split('\n').filter(line => line.trim() !== '')})}
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
+                    placeholder="3D Environment Design&#10;Fluid & Particle Simulation"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">TOOLS (한 줄에 하나씩)</label>
+                  <textarea 
+                    value={settings.aboutTools.join('\n')}
+                    onChange={e => onUpdateSettings({...settings, aboutTools: e.target.value.split('\n').filter(line => line.trim() !== '')})}
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
+                    placeholder="Houdini, Maya, Blender&#10;Nuke, After Effects"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8 border-t border-white/10">
               <h3 className="text-lg font-bold text-white mb-6">소셜 미디어 링크</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">

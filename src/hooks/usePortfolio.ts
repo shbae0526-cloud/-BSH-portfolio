@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { onAuthStateChanged, User, signInWithGoogle, logout } from '../firebase';
+import { db, auth } from '../firebase';
 import { PortfolioItem, SiteSettings } from '../types';
 
-const STORAGE_KEY_PORTFOLIO = 'vfx_bsh_portfolio_items';
-const STORAGE_KEY_SETTINGS = 'vfx_bsh_site_settings';
+const COLLECTION_ITEMS = 'portfolio_items';
+const DOC_SETTINGS = 'settings/global';
+
+const ADMIN_EMAIL = 'shbae0526@gmail.com';
 
 const DEFAULT_ITEMS: PortfolioItem[] = [
   {
@@ -46,6 +51,11 @@ const DEFAULT_SETTINGS: SiteSettings = {
   accentColor: '#00D4FF',
   contactEmail: 'shbae0526@gmail.com',
   aboutImageUrl: 'https://picsum.photos/seed/artist/800/800',
+  aboutTitle: 'CRAFTING VISUAL EXPERIENCES',
+  aboutSubtitle: 'About Me',
+  aboutDescription: '10년 이상의 경력을 가진 VFX 아티스트로서, 영화, 광고, 게임 등 다양한 매체에서 혁신적인 시각 효과를 창조해왔습니다. 단순한 기술적 구현을 넘어, 관객의 감성을 자극하는 스토리텔링 중심의 비주얼을 지향합니다.',
+  aboutExpertise: ['3D Environment Design', 'Fluid & Particle Simulation', 'Compositing & Color Grading'],
+  aboutTools: ['Houdini, Maya, Blender', 'Nuke, After Effects', 'Unreal Engine 5'],
   heroBackgroundUrl: '',
   socialLinks: {
     instagram: 'https://instagram.com',
@@ -59,73 +69,116 @@ export function usePortfolio() {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  // Auth Listener
   useEffect(() => {
-    try {
-      const storedItems = localStorage.getItem(STORAGE_KEY_PORTFOLIO);
-      const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
-
-      if (storedItems) {
-        const parsedItems = JSON.parse(storedItems);
-        if (Array.isArray(parsedItems)) {
-          setItems(parsedItems);
-        } else {
-          setItems(DEFAULT_ITEMS);
-        }
-      } else {
-        setItems(DEFAULT_ITEMS);
-        localStorage.setItem(STORAGE_KEY_PORTFOLIO, JSON.stringify(DEFAULT_ITEMS));
-      }
-
-      if (storedSettings) {
-        const parsedSettings = JSON.parse(storedSettings);
-        if (parsedSettings && typeof parsedSettings === 'object') {
-          // Merge with defaults to ensure all required fields exist
-          setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings });
-        } else {
-          setSettings(DEFAULT_SETTINGS);
-        }
-      } else {
-        setSettings(DEFAULT_SETTINGS);
-        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
-      }
-    } catch (error) {
-      console.error('Failed to load from localStorage:', error);
-      setItems(DEFAULT_ITEMS);
-      setSettings(DEFAULT_SETTINGS);
-    } finally {
-      setIsLoaded(true);
-    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAdmin(!!currentUser && currentUser.email === ADMIN_EMAIL && currentUser.emailVerified);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const saveItems = (newItems: PortfolioItem[]) => {
-    setItems(newItems);
-    localStorage.setItem(STORAGE_KEY_PORTFOLIO, JSON.stringify(newItems));
-  };
+  // Firestore Listeners
+  useEffect(() => {
+    // Listen to items
+    const q = query(collection(db, COLLECTION_ITEMS), orderBy('createdAt', 'desc'));
+    const unsubscribeItems = onSnapshot(q, (snapshot) => {
+      const newItems = snapshot.docs.map(doc => ({ ...doc.data() } as PortfolioItem));
+      
+      // If no items in Firestore, use defaults (one-time migration/init)
+      if (newItems.length === 0 && !isLoaded) {
+        // We'll handle this in the init logic below
+      } else {
+        setItems(newItems);
+      }
+    }, (error) => {
+      console.error('Firestore Items Error:', error);
+    });
 
-  const saveSettings = (newSettings: SiteSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(newSettings));
-  };
+    // Listen to settings
+    const unsubscribeSettings = onSnapshot(doc(db, DOC_SETTINGS), (snapshot) => {
+      if (snapshot.exists()) {
+        setSettings({ ...DEFAULT_SETTINGS, ...snapshot.data() } as SiteSettings);
+      }
+      setIsLoaded(true);
+    }, (error) => {
+      console.error('Firestore Settings Error:', error);
+      setIsLoaded(true);
+    });
 
-  const addItem = (item: Omit<PortfolioItem, 'id' | 'createdAt'>) => {
+    return () => {
+      unsubscribeItems();
+      unsubscribeSettings();
+    };
+  }, []);
+
+  // Initial Data Setup (if Firestore is empty)
+  useEffect(() => {
+    const checkAndInit = async () => {
+      if (!isLoaded) return;
+      
+      try {
+        const settingsDoc = await getDoc(doc(db, DOC_SETTINGS));
+        if (!settingsDoc.exists() && isAdmin) {
+          await setDoc(doc(db, DOC_SETTINGS), DEFAULT_SETTINGS);
+        }
+
+        const itemsSnap = await getDocs(collection(db, COLLECTION_ITEMS));
+        if (itemsSnap.empty && isAdmin) {
+          for (const item of DEFAULT_ITEMS) {
+            await setDoc(doc(db, COLLECTION_ITEMS, item.id), item);
+          }
+        }
+      } catch (error) {
+        console.error('Init Error:', error);
+      }
+    };
+    
+    if (isAdmin) {
+      checkAndInit();
+    }
+  }, [isLoaded, isAdmin]);
+
+  const addItem = async (item: Omit<PortfolioItem, 'id' | 'createdAt'>) => {
+    if (!isAdmin) return;
+    const id = Math.random().toString(36).substr(2, 9);
     const newItem: PortfolioItem = {
       ...item,
-      id: Math.random().toString(36).substr(2, 9),
+      id,
       createdAt: Date.now(),
     };
-    saveItems([newItem, ...items]);
+    await setDoc(doc(db, COLLECTION_ITEMS, id), newItem);
   };
 
-  const updateItem = (id: string, updatedItem: Partial<PortfolioItem>) => {
-    const newItems = items.map(item => item.id === id ? { ...item, ...updatedItem } : item);
-    saveItems(newItems);
+  const updateItem = async (id: string, updatedItem: Partial<PortfolioItem>) => {
+    if (!isAdmin) return;
+    await updateDoc(doc(db, COLLECTION_ITEMS, id), updatedItem);
   };
 
-  const deleteItem = (id: string) => {
-    const newItems = items.filter(item => item.id !== id);
-    saveItems(newItems);
+  const deleteItem = async (id: string) => {
+    if (!isAdmin) return;
+    await deleteDoc(doc(db, COLLECTION_ITEMS, id));
   };
 
-  return { items, settings, isLoaded, addItem, updateItem, deleteItem, saveSettings };
+  const saveSettings = async (newSettings: SiteSettings) => {
+    if (!isAdmin) return;
+    await setDoc(doc(db, DOC_SETTINGS), newSettings);
+  };
+
+  return { 
+    items, 
+    settings, 
+    isLoaded, 
+    user, 
+    isAdmin, 
+    login: signInWithGoogle, 
+    logout, 
+    addItem, 
+    updateItem, 
+    deleteItem, 
+    saveSettings 
+  };
 }
