@@ -13,6 +13,11 @@ export default function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const { items, settings, addItem, updateItem, deleteItem, saveSettings } = usePortfolio();
 
+  // Ensure settings are loaded before rendering
+  if (!settings || !settings.heroTitle) {
+    return <div className="bg-black min-h-screen flex items-center justify-center text-[#00D4FF] font-bold">LOADING...</div>;
+  }
+
   return (
     <div className="bg-black min-h-screen font-sans selection:bg-[#00D4FF] selection:text-black">
       <Navbar 

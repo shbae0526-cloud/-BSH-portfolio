@@ -58,21 +58,37 @@ export function usePortfolio() {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    const storedItems = localStorage.getItem(STORAGE_KEY_PORTFOLIO);
-    const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+    try {
+      const storedItems = localStorage.getItem(STORAGE_KEY_PORTFOLIO);
+      const storedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
 
-    if (storedItems) {
-      setItems(JSON.parse(storedItems));
-    } else {
+      if (storedItems) {
+        const parsedItems = JSON.parse(storedItems);
+        if (Array.isArray(parsedItems)) {
+          setItems(parsedItems);
+        } else {
+          setItems(DEFAULT_ITEMS);
+        }
+      } else {
+        setItems(DEFAULT_ITEMS);
+        localStorage.setItem(STORAGE_KEY_PORTFOLIO, JSON.stringify(DEFAULT_ITEMS));
+      }
+
+      if (storedSettings) {
+        const parsedSettings = JSON.parse(storedSettings);
+        if (parsedSettings && typeof parsedSettings === 'object') {
+          setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings });
+        } else {
+          setSettings(DEFAULT_SETTINGS);
+        }
+      } else {
+        setSettings(DEFAULT_SETTINGS);
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+      }
+    } catch (error) {
+      console.error('Failed to load from localStorage:', error);
       setItems(DEFAULT_ITEMS);
-      localStorage.setItem(STORAGE_KEY_PORTFOLIO, JSON.stringify(DEFAULT_ITEMS));
-    }
-
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    } else {
       setSettings(DEFAULT_SETTINGS);
-      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
     }
   }, []);
 
