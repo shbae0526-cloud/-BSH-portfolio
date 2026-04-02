@@ -45,6 +45,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
   heroSubtitle: '고급스러운 시각 효과와 혁신적인 디자인으로 상상을 현실로 만듭니다.',
   accentColor: '#00D4FF',
   contactEmail: 'shbae0526@gmail.com',
+  aboutImageUrl: 'https://picsum.photos/seed/artist/800/800',
+  heroBackgroundUrl: '',
   socialLinks: {
     instagram: 'https://instagram.com',
     youtube: 'https://youtube.com',
@@ -56,6 +58,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
 export function usePortfolio() {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     try {
@@ -77,6 +80,7 @@ export function usePortfolio() {
       if (storedSettings) {
         const parsedSettings = JSON.parse(storedSettings);
         if (parsedSettings && typeof parsedSettings === 'object') {
+          // Merge with defaults to ensure all required fields exist
           setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings });
         } else {
           setSettings(DEFAULT_SETTINGS);
@@ -89,6 +93,8 @@ export function usePortfolio() {
       console.error('Failed to load from localStorage:', error);
       setItems(DEFAULT_ITEMS);
       setSettings(DEFAULT_SETTINGS);
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
@@ -121,5 +127,5 @@ export function usePortfolio() {
     saveItems(newItems);
   };
 
-  return { items, settings, addItem, updateItem, deleteItem, saveSettings };
+  return { items, settings, isLoaded, addItem, updateItem, deleteItem, saveSettings };
 }

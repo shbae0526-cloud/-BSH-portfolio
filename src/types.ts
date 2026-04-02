@@ -14,6 +14,8 @@ export interface SiteSettings {
   heroSubtitle: string;
   accentColor: string;
   contactEmail: string;
+  aboutImageUrl: string;
+  heroBackgroundUrl?: string;
   socialLinks: {
     instagram?: string;
     youtube?: string;

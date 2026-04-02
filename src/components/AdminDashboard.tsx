@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Settings as SettingsIcon, LayoutGrid } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Image as ImageIcon, Settings as SettingsIcon, LayoutGrid, Play } from 'lucide-react';
 import { PortfolioItem, SiteSettings } from '../types';
 
 export const AdminDashboard = ({ 
@@ -9,18 +9,28 @@ export const AdminDashboard = ({
   onAddItem, 
   onUpdateItem, 
   onDeleteItem, 
-  onUpdateSettings 
+  onUpdateSettings,
+  onExit
 }: { 
   items: PortfolioItem[], 
   settings: SiteSettings,
   onAddItem: (item: any) => void,
   onUpdateItem: (id: string, item: any) => void,
   onDeleteItem: (id: string) => void,
-  onUpdateSettings: (settings: SiteSettings) => void
+  onUpdateSettings: (settings: SiteSettings) => void,
+  onExit: () => void
 }) => {
   const [activeTab, setActiveTab] = React.useState<'items' | 'settings'>('items');
   const [isAdding, setIsAdding] = React.useState(false);
-  const [newItem, setNewItem] = React.useState({ title: '', category: '', description: '', imageUrl: '' });
+  const [editingItem, setEditingItem] = React.useState<PortfolioItem | null>(null);
+  const [newItem, setNewItem] = React.useState({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
+  const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
+
+  const handleSaveSettings = () => {
+    onUpdateSettings(settings);
+    setSaveStatus('설정이 저장되었습니다.');
+    setTimeout(() => setSaveStatus(null), 3000);
+  };
 
   return (
     <div className="min-h-screen bg-[#050505] pt-32 pb-20 px-6">
@@ -46,6 +56,13 @@ export const AdminDashboard = ({
               사이트 설정
             </button>
           </div>
+          <button 
+            onClick={onExit} 
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-white/5 text-white hover:bg-white/10 transition-all text-sm font-bold"
+          >
+            <X size={18} />
+            닫기
+          </button>
         </div>
 
         {activeTab === 'items' ? (
@@ -53,7 +70,10 @@ export const AdminDashboard = ({
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-white">포트폴리오 목록 ({items.length})</h2>
               <button 
-                onClick={() => setIsAdding(true)}
+                onClick={() => {
+                  setIsAdding(true);
+                  setEditingItem(null);
+                }}
                 className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-full text-sm font-bold hover:bg-[#00D4FF] transition-all"
               >
                 <Plus size={18} />
@@ -61,19 +81,26 @@ export const AdminDashboard = ({
               </button>
             </div>
 
-            {isAdding && (
+            {(isAdding || editingItem) && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-8"
+                className="bg-white/5 border border-[#00D4FF]/30 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,212,255,0.05)]"
               >
+                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                  {editingItem ? <Edit2 size={18} className="text-[#00D4FF]" /> : <Plus size={18} className="text-[#00D4FF]" />}
+                  {editingItem ? '작품 수정하기' : '새 작품 추가하기'}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">제목</label>
                     <input 
                       type="text" 
-                      value={newItem.title}
-                      onChange={e => setNewItem({...newItem, title: e.target.value})}
+                      value={editingItem ? editingItem.title : newItem.title}
+                      onChange={e => editingItem 
+                        ? setEditingItem({...editingItem, title: e.target.value})
+                        : setNewItem({...newItem, title: e.target.value})
+                      }
                       className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                       placeholder="작품 제목을 입력하세요"
                     />
@@ -82,43 +109,79 @@ export const AdminDashboard = ({
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">카테고리</label>
                     <input 
                       type="text" 
-                      value={newItem.category}
-                      onChange={e => setNewItem({...newItem, category: e.target.value})}
+                      value={editingItem ? editingItem.category : newItem.category}
+                      onChange={e => editingItem 
+                        ? setEditingItem({...editingItem, category: e.target.value})
+                        : setNewItem({...newItem, category: e.target.value})
+                      }
                       className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                       placeholder="예: Environments, Characters"
                     />
                   </div>
-                  <div className="md:col-span-2 space-y-2">
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">이미지 URL</label>
                     <input 
                       type="text" 
-                      value={newItem.imageUrl}
-                      onChange={e => setNewItem({...newItem, imageUrl: e.target.value})}
+                      value={editingItem ? editingItem.imageUrl : newItem.imageUrl}
+                      onChange={e => editingItem 
+                        ? setEditingItem({...editingItem, imageUrl: e.target.value})
+                        : setNewItem({...newItem, imageUrl: e.target.value})
+                      }
                       className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                       placeholder="https://..."
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">영상 URL (선택사항)</label>
+                    <input 
+                      type="text" 
+                      value={editingItem ? (editingItem.videoUrl || '') : newItem.videoUrl}
+                      onChange={e => editingItem 
+                        ? setEditingItem({...editingItem, videoUrl: e.target.value})
+                        : setNewItem({...newItem, videoUrl: e.target.value})
+                      }
+                      className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
+                      placeholder="YouTube, Vimeo 또는 .mp4 파일 링크"
+                    />
+                    <p className="text-[10px] text-gray-600">YouTube(watch/embed/youtu.be), Vimeo, 또는 직접적인 영상 파일(.mp4 등) 링크를 지원합니다.</p>
+                  </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">설명</label>
                     <textarea 
-                      value={newItem.description}
-                      onChange={e => setNewItem({...newItem, description: e.target.value})}
+                      value={editingItem ? editingItem.description : newItem.description}
+                      onChange={e => editingItem 
+                        ? setEditingItem({...editingItem, description: e.target.value})
+                        : setNewItem({...newItem, description: e.target.value})
+                      }
                       className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                       placeholder="작품에 대한 상세 설명을 입력하세요"
                     />
                   </div>
                 </div>
                 <div className="flex justify-end gap-4">
-                  <button onClick={() => setIsAdding(false)} className="px-6 py-2.5 rounded-full text-sm font-bold text-gray-400 hover:text-white transition-all">취소</button>
                   <button 
                     onClick={() => {
-                      onAddItem(newItem);
                       setIsAdding(false);
-                      setNewItem({ title: '', category: '', description: '', imageUrl: '' });
+                      setEditingItem(null);
+                    }} 
+                    className="px-6 py-2.5 rounded-full text-sm font-bold text-gray-400 hover:text-white transition-all"
+                  >
+                    취소
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (editingItem) {
+                        onUpdateItem(editingItem.id, editingItem);
+                        setEditingItem(null);
+                      } else {
+                        onAddItem(newItem);
+                        setIsAdding(false);
+                        setNewItem({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
+                      }
                     }}
                     className="bg-[#00D4FF] text-black px-8 py-2.5 rounded-full text-sm font-bold shadow-[0_0_20px_rgba(0,212,255,0.3)]"
                   >
-                    저장하기
+                    {editingItem ? '수정 완료' : '저장하기'}
                   </button>
                 </div>
               </motion.div>
@@ -131,11 +194,23 @@ export const AdminDashboard = ({
                     <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" referrerPolicy="no-referrer" />
                   </div>
                   <div className="flex-grow">
-                    <h3 className="text-white font-bold">{item.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-white font-bold">{item.title}</h3>
+                      {item.videoUrl && <Play size={12} className="text-[#00D4FF] fill-[#00D4FF]" />}
+                    </div>
                     <p className="text-gray-500 text-xs">{item.category}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => onUpdateItem(item.id, { title: item.title + ' (수정됨)' })} className="p-2 text-gray-500 hover:text-[#00D4FF] transition-colors"><Edit2 size={18} /></button>
+                    <button 
+                      onClick={() => {
+                        setEditingItem(item);
+                        setIsAdding(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }} 
+                      className="p-2 text-gray-500 hover:text-[#00D4FF] transition-colors"
+                    >
+                      <Edit2 size={18} />
+                    </button>
                     <button onClick={() => onDeleteItem(item.id)} className="p-2 text-gray-500 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                   </div>
                 </div>
@@ -170,6 +245,26 @@ export const AdminDashboard = ({
                     className="flex-grow bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 이미지 URL</label>
+                <input 
+                  type="text" 
+                  value={settings.aboutImageUrl}
+                  onChange={e => onUpdateSettings({...settings, aboutImageUrl: e.target.value})}
+                  className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
+                />
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 배경 URL (이미지 또는 영상)</label>
+                <input 
+                  type="text" 
+                  value={settings.heroBackgroundUrl || ''}
+                  onChange={e => onUpdateSettings({...settings, heroBackgroundUrl: e.target.value})}
+                  className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
+                  placeholder="YouTube, Vimeo 또는 .mp4 파일 링크"
+                />
+                <p className="text-[10px] text-gray-600">히어로 섹션 배경에 표시될 이미지나 영상 URL을 입력하세요.</p>
               </div>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 섹션 제목</label>
@@ -214,8 +309,20 @@ export const AdminDashboard = ({
               </div>
             </div>
 
-            <div className="flex justify-end pt-6">
-              <button className="flex items-center gap-2 bg-[#00D4FF] text-black px-10 py-3 rounded-full text-sm font-bold shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:scale-105 transition-all">
+            <div className="flex justify-end pt-6 items-center gap-4">
+              {saveStatus && (
+                <motion.span 
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-[#00D4FF] text-sm font-bold"
+                >
+                  {saveStatus}
+                </motion.span>
+              )}
+              <button 
+                onClick={handleSaveSettings}
+                className="flex items-center gap-2 bg-[#00D4FF] text-black px-10 py-3 rounded-full text-sm font-bold shadow-[0_0_30px_rgba(0,212,255,0.4)] hover:scale-105 transition-all"
+              >
                 <Save size={18} />
                 모든 설정 저장
               </button>

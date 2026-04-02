@@ -11,10 +11,10 @@ import { usePortfolio } from './hooks/usePortfolio';
 
 export default function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const { items, settings, addItem, updateItem, deleteItem, saveSettings } = usePortfolio();
+  const { items, settings, isLoaded, addItem, updateItem, deleteItem, saveSettings } = usePortfolio();
 
-  // Ensure settings are loaded before rendering
-  if (!settings || !settings.heroTitle) {
+  // Ensure data is loaded from localStorage before rendering
+  if (!isLoaded) {
     return <div className="bg-black min-h-screen flex items-center justify-center text-[#00D4FF] font-bold">LOADING...</div>;
   }
 
@@ -33,6 +33,7 @@ export default function App() {
           onUpdateItem={updateItem}
           onDeleteItem={deleteItem}
           onUpdateSettings={saveSettings}
+          onExit={() => setIsAdminMode(false)}
         />
       ) : (
         <main>
@@ -45,7 +46,7 @@ export default function App() {
               <div className="relative">
                 <div className="aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/10">
                   <img 
-                    src="https://picsum.photos/seed/artist/800/800" 
+                    src={settings.aboutImageUrl} 
                     alt="Artist" 
                     className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
                     referrerPolicy="no-referrer"
