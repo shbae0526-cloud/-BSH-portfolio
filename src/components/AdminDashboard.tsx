@@ -25,11 +25,26 @@ export const AdminDashboard = ({
   const [editingItem, setEditingItem] = React.useState<PortfolioItem | null>(null);
   const [newItem, setNewItem] = React.useState({ title: '', category: '', description: '', imageUrl: '', videoUrl: '' });
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
+  
+  // Local state for settings to avoid excessive Firestore writes on every keystroke
+  const [localSettings, setLocalSettings] = React.useState<SiteSettings>(settings);
 
-  const handleSaveSettings = () => {
-    onUpdateSettings(settings);
-    setSaveStatus('설정이 저장되었습니다.');
-    setTimeout(() => setSaveStatus(null), 3000);
+  // Update local settings if the remote settings change (e.g. initial load)
+  React.useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  const handleSaveSettings = async () => {
+    try {
+      setSaveStatus('저장 중...');
+      await onUpdateSettings(localSettings);
+      setSaveStatus('설정이 저장되었습니다.');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (error) {
+      console.error('Save Settings Error:', error);
+      setSaveStatus('저장 중 오류가 발생했습니다.');
+      setTimeout(() => setSaveStatus(null), 5000);
+    }
   };
 
   return (
@@ -224,8 +239,8 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">사이트 이름</label>
                 <input 
                   type="text" 
-                  value={settings.siteName}
-                  onChange={e => onUpdateSettings({...settings, siteName: e.target.value})}
+                  value={localSettings.siteName}
+                  onChange={e => setLocalSettings({...localSettings, siteName: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                 />
               </div>
@@ -234,14 +249,14 @@ export const AdminDashboard = ({
                 <div className="flex gap-3">
                   <input 
                     type="color" 
-                    value={settings.accentColor}
-                    onChange={e => onUpdateSettings({...settings, accentColor: e.target.value})}
+                    value={localSettings.accentColor}
+                    onChange={e => setLocalSettings({...localSettings, accentColor: e.target.value})}
                     className="w-12 h-12 bg-black border border-white/10 rounded-lg cursor-pointer"
                   />
                   <input 
                     type="text" 
-                    value={settings.accentColor}
-                    onChange={e => onUpdateSettings({...settings, accentColor: e.target.value})}
+                    value={localSettings.accentColor}
+                    onChange={e => setLocalSettings({...localSettings, accentColor: e.target.value})}
                     className="flex-grow bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
@@ -250,8 +265,8 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 이미지 URL</label>
                 <input 
                   type="text" 
-                  value={settings.aboutImageUrl}
-                  onChange={e => onUpdateSettings({...settings, aboutImageUrl: e.target.value})}
+                  value={localSettings.aboutImageUrl}
+                  onChange={e => setLocalSettings({...localSettings, aboutImageUrl: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                 />
               </div>
@@ -259,8 +274,8 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 배경 URL (이미지 또는 영상)</label>
                 <input 
                   type="text" 
-                  value={settings.heroBackgroundUrl || ''}
-                  onChange={e => onUpdateSettings({...settings, heroBackgroundUrl: e.target.value})}
+                  value={localSettings.heroBackgroundUrl || ''}
+                  onChange={e => setLocalSettings({...localSettings, heroBackgroundUrl: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   placeholder="YouTube, Vimeo 또는 .mp4 파일 링크"
                 />
@@ -270,16 +285,16 @@ export const AdminDashboard = ({
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 섹션 제목</label>
                 <input 
                   type="text" 
-                  value={settings.heroTitle}
-                  onChange={e => onUpdateSettings({...settings, heroTitle: e.target.value})}
+                  value={localSettings.heroTitle}
+                  onChange={e => setLocalSettings({...localSettings, heroTitle: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">히어로 섹션 부제목</label>
                 <textarea 
-                  value={settings.heroSubtitle}
-                  onChange={e => onUpdateSettings({...settings, heroSubtitle: e.target.value})}
+                  value={localSettings.heroSubtitle}
+                  onChange={e => setLocalSettings({...localSettings, heroSubtitle: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-24 resize-none"
                 />
               </div>
@@ -292,8 +307,8 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 소제목</label>
                   <input 
                     type="text" 
-                    value={settings.aboutSubtitle}
-                    onChange={e => onUpdateSettings({...settings, aboutSubtitle: e.target.value})}
+                    value={localSettings.aboutSubtitle}
+                    onChange={e => setLocalSettings({...localSettings, aboutSubtitle: e.target.value})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
@@ -301,24 +316,24 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">About Me 메인 제목</label>
                   <input 
                     type="text" 
-                    value={settings.aboutTitle}
-                    onChange={e => onUpdateSettings({...settings, aboutTitle: e.target.value})}
+                    value={localSettings.aboutTitle}
+                    onChange={e => setLocalSettings({...localSettings, aboutTitle: e.target.value})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">자기 소개 설명</label>
                   <textarea 
-                    value={settings.aboutDescription}
-                    onChange={e => onUpdateSettings({...settings, aboutDescription: e.target.value})}
+                    value={localSettings.aboutDescription}
+                    onChange={e => setLocalSettings({...localSettings, aboutDescription: e.target.value})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">EXPERTISE (한 줄에 하나씩)</label>
                   <textarea 
-                    value={settings.aboutExpertise.join('\n')}
-                    onChange={e => onUpdateSettings({...settings, aboutExpertise: e.target.value.split('\n').filter(line => line.trim() !== '')})}
+                    value={localSettings.aboutExpertise.join('\n')}
+                    onChange={e => setLocalSettings({...localSettings, aboutExpertise: e.target.value.split('\n').filter(line => line.trim() !== '')})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                     placeholder="3D Environment Design&#10;Fluid & Particle Simulation"
                   />
@@ -326,8 +341,8 @@ export const AdminDashboard = ({
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">TOOLS (한 줄에 하나씩)</label>
                   <textarea 
-                    value={settings.aboutTools.join('\n')}
-                    onChange={e => onUpdateSettings({...settings, aboutTools: e.target.value.split('\n').filter(line => line.trim() !== '')})}
+                    value={localSettings.aboutTools.join('\n')}
+                    onChange={e => setLocalSettings({...localSettings, aboutTools: e.target.value.split('\n').filter(line => line.trim() !== '')})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all h-32 resize-none"
                     placeholder="Houdini, Maya, Blender&#10;Nuke, After Effects"
                   />
@@ -342,8 +357,8 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Instagram</label>
                   <input 
                     type="text" 
-                    value={settings.socialLinks.instagram}
-                    onChange={e => onUpdateSettings({...settings, socialLinks: {...settings.socialLinks, instagram: e.target.value}})}
+                    value={localSettings.socialLinks.instagram}
+                    onChange={e => setLocalSettings({...localSettings, socialLinks: {...localSettings.socialLinks, instagram: e.target.value}})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>
@@ -351,8 +366,8 @@ export const AdminDashboard = ({
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">YouTube</label>
                   <input 
                     type="text" 
-                    value={settings.socialLinks.youtube}
-                    onChange={e => onUpdateSettings({...settings, socialLinks: {...settings.socialLinks, youtube: e.target.value}})}
+                    value={localSettings.socialLinks.youtube}
+                    onChange={e => setLocalSettings({...localSettings, socialLinks: {...localSettings.socialLinks, youtube: e.target.value}})}
                     className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-white focus:border-[#00D4FF] outline-none transition-all"
                   />
                 </div>

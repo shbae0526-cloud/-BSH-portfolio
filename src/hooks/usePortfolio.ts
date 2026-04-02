@@ -164,8 +164,17 @@ export function usePortfolio() {
   };
 
   const saveSettings = async (newSettings: SiteSettings) => {
-    if (!isAdmin) return;
-    await setDoc(doc(db, DOC_SETTINGS), newSettings);
+    if (!isAdmin) {
+      console.error('Save Settings Error: User is not an admin or email not verified.');
+      throw new Error('권한이 없습니다. 관리자 계정으로 로그인하고 이메일 인증을 확인하세요.');
+    }
+    try {
+      await setDoc(doc(db, DOC_SETTINGS), newSettings);
+      console.log('Settings saved successfully to Firestore.');
+    } catch (error) {
+      console.error('Firestore Save Settings Error:', error);
+      throw error;
+    }
   };
 
   return { 

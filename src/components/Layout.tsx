@@ -8,52 +8,72 @@ export const Navbar = ({ onAdminClick, isAdmin, user, onLogin, onLogout }: {
   user: any,
   onLogin: () => void,
   onLogout: () => void
-}) => (
-  <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
-    <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-      <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="text-2xl font-bold tracking-tighter text-white"
-      >
-        VFX <span className="text-[#00D4FF]">BSH</span>
-      </motion.div>
-      <div className="flex items-center gap-8">
-        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm font-medium text-gray-400 hover:text-[#00D4FF] transition-colors">HOME</button>
-        <button onClick={() => document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-medium text-gray-400 hover:text-[#00D4FF] transition-colors">PORTFOLIO</button>
-        
-        {user ? (
+}) => {
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleLogin = async () => {
+    try {
+      setError(null);
+      await onLogin();
+    } catch (err: any) {
+      console.error('Login Error:', err);
+      setError(err.message || '로그인에 실패했습니다.');
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-2xl font-bold tracking-tighter text-white"
+        >
+          VFX <span className="text-[#00D4FF]">BSH</span>
+        </motion.div>
+        <div className="flex items-center gap-8">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm font-medium text-gray-400 hover:text-[#00D4FF] transition-colors">HOME</button>
+          <button onClick={() => document.getElementById('portfolio')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-medium text-gray-400 hover:text-[#00D4FF] transition-colors">PORTFOLIO</button>
+          
           <div className="flex items-center gap-4">
-            {isAdmin && (
+            {error && (
+              <span className="text-red-500 text-[10px] font-bold animate-pulse">{error}</span>
+            )}
+            {user ? (
+              <>
+                {isAdmin && (
+                  <button 
+                    onClick={onAdminClick}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isAdmin && window.location.hash === '#admin' ? 'bg-[#00D4FF] text-black' : 'border border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF] hover:text-black'}`}
+                  >
+                    {isAdmin && window.location.hash === '#admin' ? 'EXIT ADMIN' : 'ADMIN CMS'}
+                  </button>
+                )}
+                <button 
+                  onClick={onLogout}
+                  className="text-xs font-bold text-gray-500 hover:text-white transition-colors"
+                >
+                  LOGOUT
+                </button>
+                {user.photoURL && (
+                  <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-white/10" referrerPolicy="no-referrer" />
+                )}
+              </>
+            ) : (
               <button 
-                onClick={onAdminClick}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${isAdmin && window.location.hash === '#admin' ? 'bg-[#00D4FF] text-black' : 'border border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF] hover:text-black'}`}
+                onClick={handleLogin}
+                className="px-4 py-2 rounded-full text-xs font-bold border border-white/20 text-white hover:bg-white/10 transition-all"
               >
-                {isAdmin && window.location.hash === '#admin' ? 'EXIT ADMIN' : 'ADMIN CMS'}
+                ADMIN LOGIN
               </button>
             )}
-            <button 
-              onClick={onLogout}
-              className="text-xs font-bold text-gray-500 hover:text-white transition-colors"
-            >
-              LOGOUT
-            </button>
-            {user.photoURL && (
-              <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-white/10" referrerPolicy="no-referrer" />
-            )}
           </div>
-        ) : (
-          <button 
-            onClick={onLogin}
-            className="px-4 py-2 rounded-full text-xs font-bold border border-white/20 text-white hover:bg-white/10 transition-all"
-          >
-            ADMIN LOGIN
-          </button>
-        )}
+        </div>
       </div>
-    </div>
-  </nav>
-);
+    </nav>
+  );
+};
 
 export const Footer = ({ settings }: { settings: any }) => (
   <footer className="bg-[#0a0a0a] border-t border-white/5 py-20 px-6">
